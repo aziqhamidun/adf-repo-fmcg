@@ -1,0 +1,20 @@
+{
+	"name": "ls_sftp",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "Sftp",
+		"typeProperties": {
+			"host": "192.168.68.112",
+			"port": 22,
+			"skipHostKeyValidation": true,
+			"authenticationType": "Basic",
+			"userName": "MAC",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiI4ODVlYzUzOS0xNzI0LTRmYzEtODNhZS1hNDQ0ZWJhMzZiMjciLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "ir-fmcg",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
