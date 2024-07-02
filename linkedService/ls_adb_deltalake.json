@@ -1,0 +1,16 @@
+{
+	"name": "ls_adb_deltalake",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricksDeltaLake",
+		"typeProperties": {
+			"domain": "https://adb-2524827665836585.5.azuredatabricks.net",
+			"clusterId": "0701-020414-af1rhccw",
+			"workspaceResourceId": "/subscriptions/1f0f76f7-2371-46ba-9caf-e0eb0c92809d/resourceGroups/ah-dev-environment-eastus2/providers/Microsoft.Databricks/workspaces/ah-azuredatabricks-eastus2"
+		},
+		"connectVia": {
+			"referenceName": "ir-fmcg",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
