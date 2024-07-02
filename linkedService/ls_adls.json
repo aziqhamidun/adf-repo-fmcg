@@ -1,0 +1,14 @@
+{
+	"name": "ls_adls",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://ahadlsgen2storagedev.dfs.core.windows.net/"
+		},
+		"connectVia": {
+			"referenceName": "ir-fmcg",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
