@@ -1,13 +1,35 @@
 {
 	"name": "ls_mysql",
 	"properties": {
+		"parameters": {
+			"server_name": {
+				"type": "string",
+				"defaultValue": "localhost"
+			},
+			"port": {
+				"type": "string",
+				"defaultValue": "3306"
+			},
+			"database_name": {
+				"type": "string",
+				"defaultValue": "fmcg"
+			},
+			"user_name": {
+				"type": "string",
+				"defaultValue": "root"
+			},
+			"secret_name": {
+				"type": "string",
+				"defaultValue": "mysql-password"
+			}
+		},
 		"annotations": [],
 		"type": "MySql",
 		"typeProperties": {
-			"server": "localhost",
-			"port": 3306,
-			"database": "fmcg",
-			"username": "root",
+			"server": "@{linkedService().server_name}",
+			"port": "@{linkedService().port}",
+			"database": "@{linkedService().database_name}",
+			"username": "@{linkedService().user_name}",
 			"sslMode": 0,
 			"password": {
 				"type": "AzureKeyVaultSecret",
