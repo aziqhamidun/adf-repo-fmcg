@@ -1,6 +1,5 @@
 {
 	"name": "ls_mysql",
-	"type": "Microsoft.DataFactory/factories/linkedservices",
 	"properties": {
 		"annotations": [],
 		"type": "MySql",
@@ -10,12 +9,20 @@
 			"database": "fmcg",
 			"username": "root",
 			"sslMode": 0,
-			"driverVersion": "v2",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiI1MzRkZWIyZi01YjAyLTQ5YzYtOTcyYy1kZGEyNTliYjE2NjgiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_keyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "mysql-password"
+			},
+			"driverVersion": "v2"
 		},
 		"connectVia": {
 			"referenceName": "ir-fmcg",
 			"type": "IntegrationRuntimeReference"
 		}
-	}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
 }
