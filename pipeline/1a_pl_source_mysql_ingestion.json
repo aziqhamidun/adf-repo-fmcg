@@ -266,7 +266,59 @@
 								"expression": {
 									"value": "@equals(activity('Copy table records').output.rowsRead, activity('Copy table records').output.rowsCopied)",
 									"type": "Expression"
-								}
+								},
+								"ifFalseActivities": [
+									{
+										"name": "record mismatch log",
+										"type": "DatabricksNotebook",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+											"baseParameters": {
+												"env": {
+													"value": "@pipeline().globalParameters.env",
+													"type": "Expression"
+												},
+												"pipeLineName": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"logMessage": {
+													"value": "@concat(string(sub(int(activity('Copy table records').output.rowsRead), int(activity('Copy table records').output.rowsCopied))), ' records not copied to adls landing container from table ', item().source_file_or_table_name)",
+													"type": "Expression"
+												},
+												"status": {
+													"value": "success",
+													"type": "Expression"
+												},
+												"triggerType": {
+													"value": "@pipeline().TriggerType",
+													"type": "Expression"
+												},
+												"loadId": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"logTimeStamp": {
+													"value": "@formatDateTime(convertFromUtc(utcNow(), 'Malaysia Standard Time'),'yyyy-MM-dd HH:mm:ss')",
+													"type": "Expression"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_adb_compute",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
 							}
 						}
 					]
