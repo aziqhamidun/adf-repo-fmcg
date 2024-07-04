@@ -183,7 +183,7 @@
 										"type": "Expression"
 									},
 									"logTimeStamp": {
-										"value": "@formatDateTime(convertFromUtc(utcNow(), 'Singapore Standard Time'),'yyyy-MM-dd HH:mm:ss')",
+										"value": "@formatDateTime(convertFromUtc(utcNow(), 'Malaysia Time'),'yyyy-MM-dd HH:mm:ss')",
 										"type": "Expression"
 									}
 								}
