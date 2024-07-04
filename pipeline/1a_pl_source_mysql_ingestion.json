@@ -249,6 +249,25 @@
 								"referenceName": "ls_adb_compute",
 								"type": "LinkedServiceReference"
 							}
+						},
+						{
+							"name": "compare records count",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Copy table records",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('Copy table records').output.rowsRead, activity('Copy table records').output.rowsCopied)",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
