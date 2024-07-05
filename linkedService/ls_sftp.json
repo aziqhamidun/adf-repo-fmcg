@@ -1,10 +1,28 @@
 {
 	"name": "ls_sftp",
 	"properties": {
+		"parameters": {
+			"host_name": {
+				"type": "string",
+				"defaultValue": "localhost"
+			},
+			"port": {
+				"type": "string",
+				"defaultValue": "22"
+			},
+			"user_name": {
+				"type": "string",
+				"defaultValue": "MAC"
+			},
+			"secret_name": {
+				"type": "string",
+				"defaultValue": "sftp-password"
+			}
+		},
 		"annotations": [],
 		"type": "Sftp",
 		"typeProperties": {
-			"host": "192.168.68.112",
+			"host": "localhost",
 			"port": 22,
 			"skipHostKeyValidation": true,
 			"authenticationType": "Basic",
