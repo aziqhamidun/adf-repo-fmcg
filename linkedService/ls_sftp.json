@@ -4,7 +4,7 @@
 		"parameters": {
 			"host_name": {
 				"type": "string",
-				"defaultValue": "localhost"
+				"defaultValue": "192.168.68.112"
 			},
 			"port": {
 				"type": "string",
@@ -22,7 +22,7 @@
 		"annotations": [],
 		"type": "Sftp",
 		"typeProperties": {
-			"host": "localhost",
+			"host": "192.168.68.112",
 			"port": 22,
 			"skipHostKeyValidation": true,
 			"authenticationType": "Basic",
