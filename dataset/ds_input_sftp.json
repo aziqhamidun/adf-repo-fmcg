@@ -3,7 +3,38 @@
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_sftp",
-			"type": "LinkedServiceReference"
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"host_name": "192.168.68.112",
+				"port": "22",
+				"user_name": "MAC",
+				"secret_name": "sftp-password"
+			}
+		},
+		"parameters": {
+			"host_name": {
+				"type": "string",
+				"defaultValue": "192.168.68.112"
+			},
+			"port": {
+				"type": "string",
+				"defaultValue": "22"
+			},
+			"user_name": {
+				"type": "string",
+				"defaultValue": "MAC"
+			},
+			"secret_name": {
+				"type": "string",
+				"defaultValue": "sftp-password"
+			},
+			"source_file_path": {
+				"type": "string",
+				"defaultValue": "sftp_files"
+			},
+			"file_name": {
+				"type": "string"
+			}
 		},
 		"annotations": [],
 		"type": "DelimitedText",
