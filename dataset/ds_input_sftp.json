@@ -5,10 +5,22 @@
 			"referenceName": "ls_sftp",
 			"type": "LinkedServiceReference",
 			"parameters": {
-				"host_name": "192.168.68.112",
-				"port": "22",
-				"user_name": "MAC",
-				"secret_name": "sftp-password"
+				"host_name": {
+					"value": "@dataset().host_name",
+					"type": "Expression"
+				},
+				"port": {
+					"value": "@dataset().port",
+					"type": "Expression"
+				},
+				"user_name": {
+					"value": "@dataset().user_name",
+					"type": "Expression"
+				},
+				"secret_name": {
+					"value": "@dataset().secret_name",
+					"type": "Expression"
+				}
 			}
 		},
 		"parameters": {
@@ -40,7 +52,15 @@
 		"type": "DelimitedText",
 		"typeProperties": {
 			"location": {
-				"type": "SftpLocation"
+				"type": "SftpLocation",
+				"fileName": {
+					"value": "@dataset().file_name",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().source_file_path",
+					"type": "Expression"
+				}
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
