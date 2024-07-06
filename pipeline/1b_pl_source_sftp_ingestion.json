@@ -231,6 +231,58 @@
 								"errorCode": "No file found!"
 							}
 						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "file count log",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@concat(string(length(activity('get matadata for source files').output.childItems)), ' files available in source location to ingest.')",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "success",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_adb_compute",
+								"type": "LinkedServiceReference"
+							}
+						}
 					]
 				}
 			}
