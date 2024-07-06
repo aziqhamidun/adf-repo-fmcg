@@ -54,7 +54,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"host_name": {
-								"value": "@activity('metadata_lookup').output.value[0].source_ref_id",
+								"value": "@activity('metadata_lookup').output.value[0].host_name",
 								"type": "Expression"
 							},
 							"port": {
