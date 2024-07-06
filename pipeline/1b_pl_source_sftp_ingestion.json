@@ -76,7 +76,9 @@
 							"file_name": "*"
 						}
 					},
-					"fieldList": [],
+					"fieldList": [
+						"childItems"
+					],
 					"storeSettings": {
 						"type": "SftpReadSettings",
 						"enablePartitionDiscovery": false,
