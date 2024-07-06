@@ -1,6 +1,24 @@
 {
 	"name": "ls_sftp",
 	"properties": {
+		"parameters": {
+			"host_name": {
+				"type": "string",
+				"defaultValue": "192.168.68.112"
+			},
+			"port": {
+				"type": "string",
+				"defaultValue": "22"
+			},
+			"user_name": {
+				"type": "string",
+				"defaultValue": "user"
+			},
+			"secret_name": {
+				"type": "string",
+				"defaultValue": "sftp-password"
+			}
+		},
 		"annotations": [],
 		"type": "Sftp",
 		"typeProperties": {
@@ -8,7 +26,7 @@
 			"port": 22,
 			"skipHostKeyValidation": true,
 			"authenticationType": "Basic",
-			"userName": "MAC",
+			"userName": "user",
 			"password": {
 				"type": "AzureKeyVaultSecret",
 				"store": {
