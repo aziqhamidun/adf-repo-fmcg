@@ -42,7 +42,7 @@
 			},
 			"source_file_path": {
 				"type": "string",
-				"defaultValue": "c:/sftp_files"
+				"defaultValue": "/C:/sftp_files"
 			},
 			"file_name": {
 				"type": "string"
