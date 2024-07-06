@@ -58,19 +58,19 @@
 								"type": "Expression"
 							},
 							"port": {
-								"value": "@activity('metadata_lookup').output.value[0].port",
+								"value": "@activity('metadata_lookup').output.port",
 								"type": "Expression"
 							},
 							"user_name": {
-								"value": "@activity('metadata_lookup').output.value[0].user_name",
+								"value": "@activity('metadata_lookup').output.user_name",
 								"type": "Expression"
 							},
 							"secret_name": {
-								"value": "@activity('metadata_lookup').output.value[0].secret_name",
+								"value": "@activity('metadata_lookup').output.secret_name",
 								"type": "Expression"
 							},
 							"source_file_path": {
-								"value": "@activity('metadata_lookup').output.value[0].source_file_path",
+								"value": "@activity('metadata_lookup').output.source_file_path",
 								"type": "Expression"
 							},
 							"file_name": "*"
