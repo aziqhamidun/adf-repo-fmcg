@@ -54,7 +54,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"host_name": {
-								"value": "@activity('metadata_lookup').output.host_name",
+								"value": "192.168.68.112",
 								"type": "Expression"
 							},
 							"port": {
