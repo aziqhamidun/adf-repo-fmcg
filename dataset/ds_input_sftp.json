@@ -34,7 +34,7 @@
 			},
 			"user_name": {
 				"type": "string",
-				"defaultValue": "MAC"
+				"defaultValue": "user"
 			},
 			"secret_name": {
 				"type": "string",
