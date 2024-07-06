@@ -34,7 +34,7 @@
 			},
 			"user_name": {
 				"type": "string",
-				"defaultValue": "MAC"
+				"defaultValue": "user"
 			},
 			"secret_name": {
 				"type": "string",
@@ -42,7 +42,7 @@
 			},
 			"source_file_path": {
 				"type": "string",
-				"defaultValue": "sftp_files"
+				"defaultValue": "/C:/sftp_files"
 			},
 			"file_name": {
 				"type": "string"
@@ -63,6 +63,7 @@
 				}
 			},
 			"columnDelimiter": ",",
+			"rowDelimiter": "\n",
 			"escapeChar": "\\",
 			"firstRowAsHeader": true,
 			"quoteChar": "\""
