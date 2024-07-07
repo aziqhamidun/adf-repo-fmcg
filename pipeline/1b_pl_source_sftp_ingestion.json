@@ -300,6 +300,10 @@
 				],
 				"userProperties": [],
 				"typeProperties": {
+					"items": {
+						"value": "@activity('get matadata for source files').output",
+						"type": "Expression"
+					},
 					"activities": [
 						{
 							"name": "copy source files",
