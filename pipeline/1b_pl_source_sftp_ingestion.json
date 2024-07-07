@@ -493,11 +493,11 @@
 										"type": "Expression"
 									},
 									"logMessage": {
-										"value": "@concat('failed to copy ',item().source_file_or_table_name,' table to adls landing container.')",
+										"value": "@concat('failed to copy ',item().source_file_or_table_name,' file to adls landing container.')",
 										"type": "Expression"
 									},
 									"status": {
-										"value": "@concat('Error: ',activity('Copy table records').Error.message)",
+										"value": "@concat('Error: ',activity('copy source file').Error.message)",
 										"type": "Expression"
 									},
 									"triggerType": {
