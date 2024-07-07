@@ -301,12 +301,13 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('copy source files').output",
+						"value": "@activity('metadata_lookup').output.value",
 						"type": "Expression"
 					},
+					"isSequential": true,
 					"activities": [
 						{
-							"name": "copy source files",
+							"name": "copy source file",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
@@ -409,7 +410,7 @@
 							"type": "DatabricksNotebook",
 							"dependsOn": [
 								{
-									"activity": "copy source files",
+									"activity": "copy source file",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -466,7 +467,7 @@
 							"type": "DatabricksNotebook",
 							"dependsOn": [
 								{
-									"activity": "copy source files",
+									"activity": "copy source file",
 									"dependencyConditions": [
 										"Failed"
 									]
@@ -496,7 +497,7 @@
 										"type": "Expression"
 									},
 									"status": {
-										"value": "@concat('Error: ',activity('copy source files').Error.message)",
+										"value": "@concat('Error: ',activity('copy source file').Error.message)",
 										"type": "Expression"
 									},
 									"triggerType": {
