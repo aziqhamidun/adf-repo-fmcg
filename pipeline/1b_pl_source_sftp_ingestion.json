@@ -496,7 +496,7 @@
 										"type": "Expression"
 									},
 									"status": {
-										"value": "@concat('Error: ',activity('Copy source file').Error.message)",
+										"value": "@concat('Error: ',activity('copy source files').Error.message)",
 										"type": "Expression"
 									},
 									"triggerType": {
