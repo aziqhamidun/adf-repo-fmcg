@@ -329,7 +329,14 @@
 												]
 											}
 										],
-										"userProperties": []
+										"userProperties": [],
+										"typeProperties": {
+											"message": {
+												"value": "@concat(string(sub(int(activity('Copy table records').output.rowsRead), int(activity('Copy table records').output.rowsCopied))), ' records not copied to adls landing container from table ', item().source_file_or_table_name)",
+												"type": "Expression"
+											},
+											"errorCode": "Records mismatched!"
+										}
 									}
 								]
 							}
