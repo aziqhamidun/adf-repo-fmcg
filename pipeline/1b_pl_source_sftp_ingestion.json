@@ -54,7 +54,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"host_name": {
-								"value": "192.168.68.112",
+								"value": "@activity('metadata_lookup').output.host_name",
 								"type": "Expression"
 							},
 							"port": {
@@ -81,6 +81,7 @@
 					],
 					"storeSettings": {
 						"type": "SftpReadSettings",
+						"recursive": true,
 						"enablePartitionDiscovery": false,
 						"disableChunking": false
 					},
