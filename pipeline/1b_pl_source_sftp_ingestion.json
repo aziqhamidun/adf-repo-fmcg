@@ -286,6 +286,26 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "for each source fil",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "source file count check",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('metadata_lookup').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true
+				}
 			}
 		],
 		"parameters": {
