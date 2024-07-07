@@ -25,7 +25,7 @@
 		],
 		"parameters": {
 			"metadata_values": {
-				"type": "string"
+				"type": "object"
 			}
 		},
 		"annotations": []
