@@ -15,7 +15,33 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/databricks_notebooks/mysql_bronze_ingestion"
+					"notebookPath": "/databricks_notebooks/mysql_bronze_ingestion",
+					"baseParameters": {
+						"LoadID": {
+							"value": "@pipeline()?.TriggeredByPipelineRunId",
+							"type": "Expression"
+						},
+						"bronze_schema": {
+							"value": "@pipeline().parameters.metadata_values.bronze_schema",
+							"type": "Expression"
+						},
+						"bronze_table": {
+							"value": "@pipeline().parameters.metadata_values.bronze_tbl",
+							"type": "Expression"
+						},
+						"env": {
+							"value": "@pipeline().globalParameters.env",
+							"type": "Expression"
+						},
+						"source_file_name": {
+							"value": "@pipeline().parameters.metadata_values.source_file_or_table_name",
+							"type": "Expression"
+						},
+						"storage_account_name": {
+							"value": "@pipeline().parameters.metadata_values.storage_account",
+							"type": "Expression"
+						}
+					}
 				},
 				"linkedServiceName": {
 					"referenceName": "ls_adb_compute",
