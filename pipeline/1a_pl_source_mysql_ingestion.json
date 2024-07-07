@@ -317,6 +317,19 @@
 											"referenceName": "ls_adb_compute",
 											"type": "LinkedServiceReference"
 										}
+									},
+									{
+										"name": "fail file ingestion",
+										"type": "Fail",
+										"dependsOn": [
+											{
+												"activity": "record mismatch log",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": []
 									}
 								]
 							}
