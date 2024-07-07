@@ -13,7 +13,14 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/databricks_notebooks/mysql_bronze_ingestion"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_adb_compute",
+					"type": "LinkedServiceReference"
+				}
 			}
 		],
 		"annotations": []
