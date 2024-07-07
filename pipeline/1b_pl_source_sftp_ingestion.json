@@ -288,7 +288,7 @@
 				}
 			},
 			{
-				"name": "for each source file",
+				"name": "for each source files",
 				"type": "ForEach",
 				"dependsOn": [
 					{
