@@ -23,6 +23,11 @@
 				}
 			}
 		],
+		"parameters": {
+			"metadata_values": {
+				"type": "string"
+			}
+		},
 		"annotations": []
 	}
 }
