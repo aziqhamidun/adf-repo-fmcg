@@ -47,6 +47,25 @@
 					"referenceName": "ls_adb_compute",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "compare records count",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "bronze layer ingestion",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('bronze layer ingestion').output.roundOutput[0], activity('bronze layer ingestion').output.roundOutput[2])",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
