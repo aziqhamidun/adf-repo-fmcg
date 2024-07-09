@@ -62,7 +62,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"expression": {
-						"value": "@equals(activity('bronze layer ingestion').output.runOutput[0], activity('bronze layer ingestion').output.runOutput[2])",
+						"value": "@equals(activity('bronze layer ingestion').output.runOutput[0], activity('bronze layer ingestion').output.runOutput[1])",
 						"type": "Expression"
 					},
 					"ifFalseActivities": [
