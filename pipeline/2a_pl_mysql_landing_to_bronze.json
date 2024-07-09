@@ -98,11 +98,11 @@
 							"type": "Expression"
 						},
 						"logMessage": {
-							"value": "@concat('failed to copy ',item().source_file_or_table_name,' table to adls landing container.')",
+							"value": "@concat('Failed to ingest source file ',pipeline().parameters.metadata_values.source_file_or_table_name, ' to bronze layer table ', pipeline().parameters.metadata_values.bronze_tbl)",
 							"type": "Expression"
 						},
 						"status": {
-							"value": "@concat('Error: ',activity('Copy table records').Error.message)",
+							"value": "@concat('Error: ', activity('bronze layer ingestion').Error.message)",
 							"type": "Expression"
 						},
 						"triggerType": {
