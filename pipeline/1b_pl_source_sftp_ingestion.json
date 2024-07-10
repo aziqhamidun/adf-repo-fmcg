@@ -518,6 +518,35 @@
 								"referenceName": "ls_adb_compute",
 								"type": "LinkedServiceReference"
 							}
+						},
+						{
+							"name": "trigger 2b_pl_sftp_landing_to_bronze",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "copy success log",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "2b_pl_sftp_landing_to_bronze",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"metadata_values": {
+										"value": "@item()",
+										"type": "Expression"
+									}
+								}
+							}
 						}
 					]
 				}
