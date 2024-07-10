@@ -15,7 +15,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/databricks_notebooks/mysql_bronze_ingestion",
+					"notebookPath": "/databricks_notebooks/sftp_bronze_ingestion",
 					"baseParameters": {
 						"LoadID": {
 							"value": "@pipeline()?.TriggeredByPipelineRunId",
