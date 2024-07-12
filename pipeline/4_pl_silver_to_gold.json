@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "silver layer ingestion",
+				"name": "gold layer ingestion",
 				"type": "DatabricksNotebook",
 				"dependsOn": [],
 				"policy": {
@@ -15,18 +15,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/databricks_notebooks/bronze to silver ingestion",
+					"notebookPath": "/databricks_notebooks/silver to gold ingestion",
 					"baseParameters": {
 						"LoadID": {
 							"value": "@pipeline()?.TriggeredByPipelineRunId",
-							"type": "Expression"
-						},
-						"bronze_schema": {
-							"value": "@pipeline().parameters.metadata_values.bronze_schema",
-							"type": "Expression"
-						},
-						"bronze_table": {
-							"value": "@pipeline().parameters.metadata_values.bronze_tbl",
 							"type": "Expression"
 						},
 						"silver_schema": {
@@ -35,6 +27,18 @@
 						},
 						"silver_table": {
 							"value": "@pipeline().parameters.metadata_values.silver_tbl",
+							"type": "Expression"
+						},
+						"gold_schema": {
+							"value": "@pipeline().parameters.metadata_values.gold_schema",
+							"type": "Expression"
+						},
+						"gold_table": {
+							"value": "@pipeline().parameters.metadata_values.gold_tbl",
+							"type": "Expression"
+						},
+						"source": {
+							"value": "@pipeline().parameters.metadata_values.source_ref_id",
 							"type": "Expression"
 						}
 					}
@@ -49,7 +53,7 @@
 				"type": "DatabricksNotebook",
 				"dependsOn": [
 					{
-						"activity": "silver layer ingestion",
+						"activity": "gold layer ingestion",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -106,7 +110,7 @@
 				"type": "DatabricksNotebook",
 				"dependsOn": [
 					{
-						"activity": "silver layer ingestion",
+						"activity": "gold layer ingestion",
 						"dependencyConditions": [
 							"Succeeded"
 						]
