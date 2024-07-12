@@ -575,7 +575,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "3_pl_bronze_to_silver",
+									"referenceName": "4_pl_silver_to_gold",
 									"type": "PipelineReference"
 								},
 								"waitOnCompletion": true,
