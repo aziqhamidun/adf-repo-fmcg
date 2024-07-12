@@ -557,6 +557,35 @@
 									}
 								}
 							}
+						},
+						{
+							"name": "trigger 4_pl_silver_to_gold",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "trigger 3_pl_bronze_to_silver",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "3_pl_bronze_to_silver",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"metadata_values": {
+										"value": "@item()",
+										"type": "Expression"
+									}
+								}
+							}
 						}
 					]
 				}
