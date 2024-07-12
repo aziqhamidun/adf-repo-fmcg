@@ -546,7 +546,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"pipeline": {
-									"referenceName": "2a_pl_mysql_landing_to_bronze",
+									"referenceName": "3_pl_bronze_to_silver",
 									"type": "PipelineReference"
 								},
 								"waitOnCompletion": true,
