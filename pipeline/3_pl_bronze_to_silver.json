@@ -87,7 +87,7 @@
 							"type": "Expression"
 						},
 						"loadId": {
-							"value": "@pipeline().RunId",
+							"value": "@pipeline()?.TriggeredByPipelineRunId",
 							"type": "Expression"
 						},
 						"logTimeStamp": {
