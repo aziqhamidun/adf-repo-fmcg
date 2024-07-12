@@ -34,7 +34,7 @@
 							"type": "Expression"
 						},
 						"silver_table": {
-							"value": "@pipeline().parameters.metadata_values.silver_table",
+							"value": "@pipeline().parameters.metadata_values.silver_tbl",
 							"type": "Expression"
 						}
 					}
