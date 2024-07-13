@@ -1,9 +1,9 @@
 {
-	"name": "3_pl_bronze_to_silver",
+	"name": "4_pl_silver_to_gold",
 	"properties": {
 		"activities": [
 			{
-				"name": "silver layer ingestion",
+				"name": "gold layer ingestion",
 				"type": "DatabricksNotebook",
 				"dependsOn": [],
 				"policy": {
@@ -15,18 +15,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/databricks_notebooks/bronze to silver ingestion",
+					"notebookPath": "/databricks_notebooks/silver to gold ingestion",
 					"baseParameters": {
 						"LoadID": {
 							"value": "@pipeline()?.TriggeredByPipelineRunId",
-							"type": "Expression"
-						},
-						"bronze_schema": {
-							"value": "@pipeline().parameters.metadata_values.bronze_schema",
-							"type": "Expression"
-						},
-						"bronze_table": {
-							"value": "@pipeline().parameters.metadata_values.bronze_tbl",
 							"type": "Expression"
 						},
 						"silver_schema": {
@@ -35,6 +27,18 @@
 						},
 						"silver_table": {
 							"value": "@pipeline().parameters.metadata_values.silver_tbl",
+							"type": "Expression"
+						},
+						"gold_schema": {
+							"value": "@pipeline().parameters.metadata_values.gold_schema",
+							"type": "Expression"
+						},
+						"gold_table": {
+							"value": "@pipeline().parameters.metadata_values.gold_tbl",
+							"type": "Expression"
+						},
+						"source": {
+							"value": "@pipeline().parameters.metadata_values.source_ref_id",
 							"type": "Expression"
 						}
 					}
@@ -45,11 +49,11 @@
 				}
 			},
 			{
-				"name": "silver layer ingestion failure log",
+				"name": "gold layer ingestion failure log",
 				"type": "DatabricksNotebook",
 				"dependsOn": [
 					{
-						"activity": "silver layer ingestion",
+						"activity": "gold layer ingestion",
 						"dependencyConditions": [
 							"Failed"
 						]
@@ -75,11 +79,11 @@
 							"type": "Expression"
 						},
 						"logMessage": {
-							"value": "@concat('Failed to load records from ',pipeline().parameters.metadata_values.bronze_tbl, ' to silver layer table ', pipeline().parameters.metadata_values.silver_tbl)",
+							"value": "@concat('Failed to load records from ',pipeline().parameters.metadata_values.silver_tbl, ' to gold layer table ', pipeline().parameters.metadata_values.gold_tbl)",
 							"type": "Expression"
 						},
 						"status": {
-							"value": "@concat('Error: ', activity('silver layer ingestion').Error.message)",
+							"value": "@concat('Error: ', activity('gold layer ingestion').Error.message)",
 							"type": "Expression"
 						},
 						"triggerType": {
@@ -102,11 +106,11 @@
 				}
 			},
 			{
-				"name": "silver layer ingestion success log",
+				"name": "gold layer ingestion success log",
 				"type": "DatabricksNotebook",
 				"dependsOn": [
 					{
-						"activity": "silver layer ingestion",
+						"activity": "gold layer ingestion",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -132,7 +136,7 @@
 							"type": "Expression"
 						},
 						"logMessage": {
-							"value": "@concat(' inserted ',activity('silver layer ingestion').output.runOutput[1], ' records (',activity('silver layer ingestion').output.runOutput[0],' duplicate records removed) in silver layer table ',pipeline().parameters.metadata_values.silver_tbl)",
+							"value": "@concat(' inserted ',activity('gold layer ingestion').output.runOutput[1], ' records in gold layer table ',pipeline().parameters.metadata_values.gold_tbl)",
 							"type": "Expression"
 						},
 						"status": {

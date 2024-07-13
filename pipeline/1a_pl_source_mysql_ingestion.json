@@ -179,7 +179,7 @@
 										"type": "Expression"
 									},
 									"loadId": {
-										"value": "@pipeline().RunId",
+										"value": "@pipeline()?.TriggeredByPipelineRunId",
 										"type": "Expression"
 									},
 									"logTimeStamp": {
@@ -236,7 +236,7 @@
 										"type": "Expression"
 									},
 									"loadId": {
-										"value": "@pipeline().RunId",
+										"value": "@pipeline()?.TriggeredByPipelineRunId",
 										"type": "Expression"
 									},
 									"logTimeStamp": {
@@ -458,7 +458,7 @@
 										"type": "Expression"
 									},
 									"loadId": {
-										"value": "@pipeline().RunId",
+										"value": "@pipeline()?.TriggeredByPipelineRunId",
 										"type": "Expression"
 									},
 									"logTimeStamp": {
@@ -515,7 +515,7 @@
 										"type": "Expression"
 									},
 									"loadId": {
-										"value": "@pipeline().RunId",
+										"value": "@pipeline()?.TriggeredByPipelineRunId",
 										"type": "Expression"
 									},
 									"logTimeStamp": {
@@ -528,8 +528,180 @@
 								"referenceName": "ls_adb_compute",
 								"type": "LinkedServiceReference"
 							}
+						},
+						{
+							"name": "trigger 3_pl_bronze_to_silver",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "trigger 2a_pl_mysql_landing_to_bronze",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "3_pl_bronze_to_silver",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"metadata_values": {
+										"value": "@item()",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "trigger 4_pl_silver_to_gold",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "trigger 3_pl_bronze_to_silver",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "4_pl_silver_to_gold",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"metadata_values": {
+										"value": "@item()",
+										"type": "Expression"
+									}
+								}
+							}
 						}
 					]
+				}
+			},
+			{
+				"name": "pipeline ended log",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "for each file",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+					"baseParameters": {
+						"env": {
+							"value": "@pipeline().globalParameters.env",
+							"type": "Expression"
+						},
+						"pipeLineName": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"logMessage": {
+							"value": "Pipeline ended",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "success",
+							"type": "Expression"
+						},
+						"triggerType": {
+							"value": "@pipeline().TriggerType",
+							"type": "Expression"
+						},
+						"loadId": {
+							"value": "@pipeline()?.TriggeredByPipelineRunId",
+							"type": "Expression"
+						},
+						"logTimeStamp": {
+							"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_adb_compute",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "pipeline ended failure log",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "for each file",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+					"baseParameters": {
+						"env": {
+							"value": "@pipeline().globalParameters.env",
+							"type": "Expression"
+						},
+						"pipeLineName": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"logMessage": {
+							"value": "Pipeline ended",
+							"type": "Expression"
+						},
+						"status": {
+							"value": "failure",
+							"type": "Expression"
+						},
+						"triggerType": {
+							"value": "@pipeline().TriggerType",
+							"type": "Expression"
+						},
+						"loadId": {
+							"value": "@pipeline()?.TriggeredByPipelineRunId",
+							"type": "Expression"
+						},
+						"logTimeStamp": {
+							"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_adb_compute",
+					"type": "LinkedServiceReference"
 				}
 			}
 		],
