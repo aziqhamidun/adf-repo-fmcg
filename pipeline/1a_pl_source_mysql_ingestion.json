@@ -179,7 +179,7 @@
 										"type": "Expression"
 									},
 									"loadId": {
-										"value": "@pipeline()?.TriggeredByPipelineRunId",
+										"value": "@pipeline().RunId",
 										"type": "Expression"
 									},
 									"logTimeStamp": {
@@ -236,7 +236,7 @@
 										"type": "Expression"
 									},
 									"loadId": {
-										"value": "@pipeline()?.TriggeredByPipelineRunId",
+										"value": "@pipeline().RunId",
 										"type": "Expression"
 									},
 									"logTimeStamp": {
@@ -458,7 +458,7 @@
 										"type": "Expression"
 									},
 									"loadId": {
-										"value": "@pipeline()?.TriggeredByPipelineRunId",
+										"value": "@pipeline().RunId",
 										"type": "Expression"
 									},
 									"logTimeStamp": {
@@ -492,7 +492,7 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"notebookPath": "/set_up/archive/archive_source_files",
+								"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
 								"baseParameters": {
 									"env": {
 										"value": "@pipeline().globalParameters.env",
@@ -515,7 +515,7 @@
 										"type": "Expression"
 									},
 									"loadId": {
-										"value": "@pipeline()?.TriggeredByPipelineRunId",
+										"value": "@pipeline().RunId",
 										"type": "Expression"
 									},
 									"logTimeStamp": {
@@ -633,7 +633,7 @@
 							"type": "Expression"
 						},
 						"loadId": {
-							"value": "@pipeline()?.TriggeredByPipelineRunId",
+							"value": "@pipeline().RunId",
 							"type": "Expression"
 						},
 						"logTimeStamp": {
@@ -690,7 +690,7 @@
 							"type": "Expression"
 						},
 						"loadId": {
-							"value": "@pipeline()?.TriggeredByPipelineRunId",
+							"value": "@pipeline().RunId",
 							"type": "Expression"
 						},
 						"logTimeStamp": {
