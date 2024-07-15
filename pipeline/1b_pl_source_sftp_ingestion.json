@@ -738,6 +738,35 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "trigger 4_pl_silver_to_gold",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "for each source file",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "4_pl_silver_to_gold",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"metadata_values": {
+							"value": "@activity('metadata_lookup').output.value[0]",
+							"type": "Expression"
+						}
+					}
+				}
 			}
 		],
 		"parameters": {
