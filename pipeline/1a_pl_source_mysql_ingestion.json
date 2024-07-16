@@ -728,7 +728,7 @@
 				}
 			},
 			{
-				"name": "Web1",
+				"name": "pipeline_inprogress_email",
 				"type": "WebActivity",
 				"dependsOn": [
 					{
@@ -745,7 +745,18 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "@activity('metadata_lookup').output.value[0].logic_app_url",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "{\n    \"to\":\"@{activity('metadata_lookup').output.value[0].email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,']',pipeline().Pipeline,':[InProgress]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\n    Please find below the status for @{pipeline().Pipeline}<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>In Progress</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n    </table><br/><br/>\n    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
