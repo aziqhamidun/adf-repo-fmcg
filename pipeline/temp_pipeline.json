@@ -1,0 +1,29 @@
+{
+	"name": "temp_pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "email tetsing",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://prod-37.eastus2.logic.azure.com:443/workflows/7a5a667d5aa84b25b25ff4eb5472bfba/triggers/When_a_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=4NWUtjjUPgdUpuQ7d_z9SzUsnNLuD2rd80zxUAABhUI",
+					"body": {
+						"value": "{\n    \"to\":\"aziq@malaysianaids.org\",\n    \"subject\":\" test_subject\",\n    \"email_body\":\"dummy email alert\"\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"annotations": []
+	}
+}
