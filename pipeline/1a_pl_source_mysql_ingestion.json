@@ -703,6 +703,23 @@
 					"referenceName": "ls_adb_compute",
 					"type": "LinkedServiceReference"
 				}
+			},
+			{
+				"name": "pipeline_start_time",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "start_time",
+					"value": {
+						"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -713,6 +730,11 @@
 			"metadata_database": {
 				"type": "string",
 				"defaultValue": "metadata_schema"
+			}
+		},
+		"variables": {
+			"start_time": {
+				"type": "String"
 			}
 		},
 		"annotations": []
