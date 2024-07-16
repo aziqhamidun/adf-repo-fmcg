@@ -1,9 +1,9 @@
 {
-	"name": "temp_pipeline",
+	"name": "temp_pl_email_testing",
 	"properties": {
 		"activities": [
 			{
-				"name": "email tetsing",
+				"name": "email testing",
 				"type": "WebActivity",
 				"dependsOn": [],
 				"policy": {
