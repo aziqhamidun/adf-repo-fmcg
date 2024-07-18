@@ -250,11 +250,11 @@
 				"typeProperties": {
 					"method": "POST",
 					"url": {
-						"value": "@activity('metadata_lookup').output.value[0].logic_app_url",
+						"value": "@pipeline().parameters.metadata_values.logic_app_url",
 						"type": "Expression"
 					},
 					"body": {
-						"value": "{\n    \"to\":\"@{activity('metadata_lookup').output.value[0].email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [InProgress]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>In Progress</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+						"value": "{\n    \"to\":\"@{pipeline().parameters.metadata_values.email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [bronze layer ingestion failed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline()?.TriggeredByPipelineName}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.metadata_values.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>Failed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline()?.TriggeredByPipelineRunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{pipeline().parameters.pipeline_start_time}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
 						"type": "Expression"
 					}
 				}
