@@ -372,6 +372,10 @@
 									"metadata_values": {
 										"value": "@item()",
 										"type": "Expression"
+									},
+									"pipeline_start_time": {
+										"value": "@variables('start_time')",
+										"type": "Expression"
 									}
 								}
 							}
