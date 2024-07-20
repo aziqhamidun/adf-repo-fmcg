@@ -229,7 +229,7 @@
 				}
 			},
 			{
-				"name": "pipeline_inprogress_email",
+				"name": "bronze_layer_ingestion_failure_email",
 				"type": "WebActivity",
 				"dependsOn": [
 					{
