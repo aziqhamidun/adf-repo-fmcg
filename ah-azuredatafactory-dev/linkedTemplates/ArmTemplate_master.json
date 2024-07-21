@@ -47,6 +47,14 @@
 			"type": "string",
 			"defaultValue": "metadata_schema"
 		},
+		"sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_job_id": {
+			"type": "string",
+			"defaultValue": "101"
+		},
+		"sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_metadata_database": {
+			"type": "string",
+			"defaultValue": "metadata_schema"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "URI to storage account containing linked ARM templates"
@@ -107,6 +115,32 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "ah-azuredatafactory-dev_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_job_id": {
+						"value": "[parameters('sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_job_id')]"
+					},
+					"sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_metadata_database": {
+						"value": "[parameters('sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_metadata_database')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'ah-azuredatafactory-dev_ArmTemplate_0')]"
+			]
 		}
 	]
 }

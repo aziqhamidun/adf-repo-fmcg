@@ -1,0 +1,64 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "ah-azuredatafactory-dev"
+		},
+		"sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_job_id": {
+			"type": "string",
+			"defaultValue": "101"
+		},
+		"sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_metadata_database": {
+			"type": "string",
+			"defaultValue": "metadata_schema"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/sftp_trigger')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "1b_pl_source_sftp_ingestion",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"job_id": "[parameters('sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_job_id')]",
+							"metadata_database": "[parameters('sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_metadata_database')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2024-07-21T13:00:00",
+						"endTime": "2024-07-23T07:00:00",
+						"timeZone": "Singapore Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								6
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

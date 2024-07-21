@@ -34,6 +34,12 @@
 		},
 		"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_metadata_database": {
 			"value": "metadata_schema"
+		},
+		"sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_job_id": {
+			"value": "101"
+		},
+		"sftp_trigger_properties_1b_pl_source_sftp_ingestion_parameters_metadata_database": {
+			"value": "metadata_schema"
 		}
 	}
 }
