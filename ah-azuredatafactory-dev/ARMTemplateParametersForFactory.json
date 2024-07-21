@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "ah-azuredatafactory-dev"
+		},
+		"ls_adb_compute_properties_typeProperties_existingClusterId": {
+			"value": "0701-020414-af1rhccw"
+		},
+		"ls_adls_properties_typeProperties_url": {
+			"value": "https://ahadlsgen2storagedev.dfs.core.windows.net/"
+		},
+		"ls_keyvault_properties_typeProperties_baseUrl": {
+			"value": "https://ah-keyvault-dev.vault.azure.net/"
+		},
+		"ls_mysql_properties_typeProperties_server": {
+			"value": "@{linkedService().server_name}"
+		},
+		"ls_mysql_properties_typeProperties_database": {
+			"value": "@{linkedService().database_name}"
+		},
+		"ls_mysql_properties_typeProperties_username": {
+			"value": "@{linkedService().user_name}"
+		},
+		"ls_sftp_properties_typeProperties_host": {
+			"value": "192.168.68.112"
+		},
+		"ls_sftp_properties_typeProperties_userName": {
+			"value": "user"
+		},
+		"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_job_id": {
+			"value": "102"
+		},
+		"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_metadata_database": {
+			"value": "metadata_schema"
+		}
+	}
+}

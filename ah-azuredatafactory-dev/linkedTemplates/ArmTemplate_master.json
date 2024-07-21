@@ -1,0 +1,112 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "ah-azuredatafactory-dev"
+		},
+		"ls_adb_compute_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0701-020414-af1rhccw"
+		},
+		"ls_adls_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ahadlsgen2storagedev.dfs.core.windows.net/"
+		},
+		"ls_keyvault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://ah-keyvault-dev.vault.azure.net/"
+		},
+		"ls_mysql_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "@{linkedService().server_name}"
+		},
+		"ls_mysql_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "@{linkedService().database_name}"
+		},
+		"ls_mysql_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "@{linkedService().user_name}"
+		},
+		"ls_sftp_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "192.168.68.112"
+		},
+		"ls_sftp_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "user"
+		},
+		"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_job_id": {
+			"type": "string",
+			"defaultValue": "102"
+		},
+		"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_metadata_database": {
+			"type": "string",
+			"defaultValue": "metadata_schema"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "ah-azuredatafactory-dev_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"ls_keyvault_properties_typeProperties_baseUrl": {
+						"value": "[parameters('ls_keyvault_properties_typeProperties_baseUrl')]"
+					},
+					"ls_adb_compute_properties_typeProperties_existingClusterId": {
+						"value": "[parameters('ls_adb_compute_properties_typeProperties_existingClusterId')]"
+					},
+					"ls_adls_properties_typeProperties_url": {
+						"value": "[parameters('ls_adls_properties_typeProperties_url')]"
+					},
+					"ls_mysql_properties_typeProperties_server": {
+						"value": "[parameters('ls_mysql_properties_typeProperties_server')]"
+					},
+					"ls_mysql_properties_typeProperties_database": {
+						"value": "[parameters('ls_mysql_properties_typeProperties_database')]"
+					},
+					"ls_mysql_properties_typeProperties_username": {
+						"value": "[parameters('ls_mysql_properties_typeProperties_username')]"
+					},
+					"ls_sftp_properties_typeProperties_host": {
+						"value": "[parameters('ls_sftp_properties_typeProperties_host')]"
+					},
+					"ls_sftp_properties_typeProperties_userName": {
+						"value": "[parameters('ls_sftp_properties_typeProperties_userName')]"
+					},
+					"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_job_id": {
+						"value": "[parameters('mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_job_id')]"
+					},
+					"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_metadata_database": {
+						"value": "[parameters('mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_metadata_database')]"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

@@ -1,0 +1,3361 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "ah-azuredatafactory-dev"
+		},
+		"ls_adb_compute_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0701-020414-af1rhccw"
+		},
+		"ls_adls_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ahadlsgen2storagedev.dfs.core.windows.net/"
+		},
+		"ls_keyvault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://ah-keyvault-dev.vault.azure.net/"
+		},
+		"ls_mysql_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "@{linkedService().server_name}"
+		},
+		"ls_mysql_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "@{linkedService().database_name}"
+		},
+		"ls_mysql_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "@{linkedService().user_name}"
+		},
+		"ls_sftp_properties_typeProperties_host": {
+			"type": "string",
+			"defaultValue": "192.168.68.112"
+		},
+		"ls_sftp_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "user"
+		},
+		"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_job_id": {
+			"type": "string",
+			"defaultValue": "102"
+		},
+		"mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_metadata_database": {
+			"type": "string",
+			"defaultValue": "metadata_schema"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/1a_pl_source_mysql_ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "metadata_lookup",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureDatabricksDeltaLakeSource",
+								"query": {
+									"value": "@concat('select control.source_ref_id, control.job_id, control.server_name, control.port, control.database_name, control.user_name, control.secret_name, control.storage_account, control.adls_url, control.container_name, control.logic_app_url, control.email_id, param.source_file_or_table_name, param.adls_file_path, param.bronze_schema, param.bronze_tbl, param.silver_schema, param.silver_tbl, param.gold_schema, param.gold_tbl from ',pipeline().parameters.metadata_database,'.tbl_source_control as control join ',pipeline().parameters.metadata_database,'.tbl_parameters as param on control.job_id = param.job_id where param.job_id = ',pipeline().parameters.job_id) ",
+									"type": "Expression"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_metadata_adb_deltalake",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "for each file",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "metadata_lookup",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "pipeline_start_time",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('metadata_lookup').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Copy table records",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "MySqlSource",
+											"query": {
+												"value": "@concat('select * from ',item().source_file_or_table_name)",
+												"type": "Expression"
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_input_mysql",
+											"type": "DatasetReference",
+											"parameters": {
+												"server": {
+													"value": "@item().server_name",
+													"type": "Expression"
+												},
+												"port": {
+													"value": "@item().port",
+													"type": "Expression"
+												},
+												"database_name": {
+													"value": "@item().database_name",
+													"type": "Expression"
+												},
+												"user_name": {
+													"value": "@item().user_name",
+													"type": "Expression"
+												},
+												"secret_name": {
+													"value": "@item().secret_name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_output_parquet",
+											"type": "DatasetReference",
+											"parameters": {
+												"container_name": {
+													"value": "@item().container_name",
+													"type": "Expression"
+												},
+												"adls_file_path": {
+													"value": "@item().adls_file_path",
+													"type": "Expression"
+												},
+												"table_name": {
+													"value": "@item().source_file_or_table_name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "copy success log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Copy table records",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('copied ',item().source_file_or_table_name,' table to adls landing container.')",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "copy failure log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "Copy table records",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('failed to copy ',item().source_file_or_table_name,' table to adls landing container.')",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@concat('Error: ',activity('Copy table records').Error.message)",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "compare records count",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "Copy table records",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@equals(activity('Copy table records').output.rowsRead, activity('Copy table records').output.rowsCopied)",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "record mismatch log",
+												"type": "DatabricksNotebook",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+													"baseParameters": {
+														"env": {
+															"value": "@pipeline().globalParameters.env",
+															"type": "Expression"
+														},
+														"pipeLineName": {
+															"value": "@pipeline().Pipeline",
+															"type": "Expression"
+														},
+														"logMessage": {
+															"value": "@concat(string(sub(int(activity('Copy table records').output.rowsRead), int(activity('Copy table records').output.rowsCopied))), ' records not copied to adls landing container from table ', item().source_file_or_table_name)",
+															"type": "Expression"
+														},
+														"status": {
+															"value": "success",
+															"type": "Expression"
+														},
+														"triggerType": {
+															"value": "@pipeline().TriggerType",
+															"type": "Expression"
+														},
+														"loadId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"logTimeStamp": {
+															"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+															"type": "Expression"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_adb_compute",
+													"type": "LinkedServiceReference"
+												}
+											},
+											{
+												"name": "fail file ingestion",
+												"type": "Fail",
+												"dependsOn": [
+													{
+														"activity": "record mismatch log",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"message": {
+														"value": "@concat(string(sub(int(activity('Copy table records').output.rowsRead), int(activity('Copy table records').output.rowsCopied))), ' records not copied to adls landing container from table ', item().source_file_or_table_name)",
+														"type": "Expression"
+													},
+													"errorCode": "Records mismatched!"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "trigger 2a_pl_mysql_landing_to_bronze",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "compare records count",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "2a_pl_mysql_landing_to_bronze",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"metadata_values": {
+												"value": "@item()",
+												"type": "Expression"
+											},
+											"pipeline_start_time": {
+												"value": "@variables('start_time')",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "archive source files",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "trigger 2a_pl_mysql_landing_to_bronze",
+											"dependencyConditions": [
+												"Completed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/set_up/archive/archive_source_files",
+										"baseParameters": {
+											"LoadID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"file_path": {
+												"value": "@item().adls_file_path",
+												"type": "Expression"
+											},
+											"source_file_name": {
+												"value": "@item().source_file_or_table_name",
+												"type": "Expression"
+											},
+											"storage_account_name": {
+												"value": "@item().storage_account",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "archive success log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "archive source files",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('Archived source file ',item().source_file_or_table_name)",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "archive failure log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "archive source files",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('failed to archive source file ',item().source_file_or_table_name)",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@concat('Error: ',activity('archive source files').Error.message)",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "trigger 3_pl_bronze_to_silver",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "trigger 2a_pl_mysql_landing_to_bronze",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "3_pl_bronze_to_silver",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"metadata_values": {
+												"value": "@item()",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "trigger 4_pl_silver_to_gold",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "trigger 3_pl_bronze_to_silver",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "4_pl_silver_to_gold",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"metadata_values": {
+												"value": "@item()",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "copy_failed_email_alert",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "Copy table records",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "POST",
+										"headers": {},
+										"url": {
+											"value": "@item().logic_app_url",
+											"type": "Expression"
+										},
+										"body": {
+											"value": "{\n    \"to\":\"@{item().email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Source File Copy Failed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>Failed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n         <tr>\n            <td>FileName</td>\n            <td>@{item().source_file_or_table_name}</td>\n        </tr>\n        <tr>\n            <td>Error</td>\n            <td>@{activity('Copy table records').Error.message\n}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "archive_failed_email_alert",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "archive source files",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "POST",
+										"headers": {},
+										"url": {
+											"value": "@item().logic_app_url",
+											"type": "Expression"
+										},
+										"body": {
+											"value": "{\n    \"to\":\"@{item().email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Source File Archive Failed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>Failed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n         <tr>\n            <td>FileName</td>\n            <td>@{item().source_file_or_table_name}</td>\n        </tr>\n        <tr>\n            <td>Error</td>\n            <td>@{activity('archive source files').Error.message\n}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "pipeline ended log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "for each file",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "Pipeline ended",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "success",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "pipeline ended failure log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "for each file",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "Pipeline ended",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "failure",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "pipeline_start_time",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "start_time",
+							"value": {
+								"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "pipeline_inprogress_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "metadata_lookup",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@activity('metadata_lookup').output.value[0].logic_app_url",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "{\n    \"to\":\"@{activity('metadata_lookup').output.value[0].email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [InProgress]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>In Progress</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "pipeline_success_email_alert",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "for each file",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@activity('metadata_lookup').output.value[0].logic_app_url",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "{\n    \"to\":\"@{activity('metadata_lookup').output.value[0].email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Completed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Green';>Completed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n         <tr>\n            <td>JobEnd</td>\n            <td>@{formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'), 'yyyy-MM-dd HH:mm:ss')\n}</td>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "pipeline_failure_email_alert",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "for each file",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@activity('metadata_lookup').output.value[0].logic_app_url",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "{\n    \"to\":\"@{activity('metadata_lookup').output.value[0].email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Failed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>Failed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n        <tr>\n            <td>JobEnd</td>\n            <td>@{formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_lumpur'), 'yyyy-MM-dd HH:mm:ss')\n}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"job_id": {
+						"type": "string",
+						"defaultValue": "102"
+					},
+					"metadata_database": {
+						"type": "string",
+						"defaultValue": "metadata_schema"
+					}
+				},
+				"variables": {
+					"start_time": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_metadata_adb_deltalake')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_adb_compute')]",
+				"[concat(variables('factoryId'), '/datasets/ds_input_mysql')]",
+				"[concat(variables('factoryId'), '/datasets/ds_output_parquet')]",
+				"[concat(variables('factoryId'), '/pipelines/2a_pl_mysql_landing_to_bronze')]",
+				"[concat(variables('factoryId'), '/pipelines/3_pl_bronze_to_silver')]",
+				"[concat(variables('factoryId'), '/pipelines/4_pl_silver_to_gold')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/1b_pl_source_sftp_ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "metadata_lookup",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureDatabricksDeltaLakeSource",
+								"query": {
+									"value": "@concat('select control.source_ref_id, control.host_name, control.port, control.user_name, control.secret_name, control.storage_account, control.adls_url, control.container_name, control.logic_app_url, control.email_id, param.source_file_or_table_name, param.source_file_path, param.adls_file_path, param.bronze_schema, param.bronze_tbl, param.silver_schema, param.silver_tbl, param.gold_schema, param.gold_tbl from ', pipeline().parameters.metadata_database,'.tbl_source_control as control join ',pipeline().parameters.metadata_database,'.tbl_parameters as param on control.job_id = param.job_id where param.job_id = ',pipeline().parameters.job_id) ",
+									"type": "Expression"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_metadata_adb_deltalake",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "get matadata for source files",
+						"type": "GetMetadata",
+						"dependsOn": [
+							{
+								"activity": "metadata_lookup",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_input_sftp",
+								"type": "DatasetReference",
+								"parameters": {
+									"host_name": {
+										"value": "@activity('metadata_lookup').output.value[0].host_name",
+										"type": "Expression"
+									},
+									"port": {
+										"value": "@activity('metadata_lookup').output.value[0].port",
+										"type": "Expression"
+									},
+									"user_name": {
+										"value": "@activity('metadata_lookup').output.value[0].user_name",
+										"type": "Expression"
+									},
+									"secret_name": {
+										"value": "@activity('metadata_lookup').output.value[0].secret_name",
+										"type": "Expression"
+									},
+									"source_file_path": {
+										"value": "@activity('metadata_lookup').output.value[0].source_file_path",
+										"type": "Expression"
+									},
+									"file_name": "*"
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "SftpReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false,
+								"disableChunking": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "source file count check",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "get matadata for source files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greater(length(activity('get matadata for source files').output.childItems), 0)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "zero file available log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "No file available in the source SFTP location to ingest.",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "pipeline end log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "zero file available log",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "Pipeline End.",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "end pipeline execution",
+									"type": "Fail",
+									"dependsOn": [
+										{
+											"activity": "pipeline end log",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"message": "No file available in the source SFTP location to ingest.",
+										"errorCode": "No file found!"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "file count log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat(string(length(activity('get matadata for source files').output.childItems)), ' files available in source location to ingest.')",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "for each source file",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "source file count check",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('metadata_lookup').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "copy source file",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "SftpReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false,
+												"disableChunking": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_input_sftp",
+											"type": "DatasetReference",
+											"parameters": {
+												"host_name": {
+													"value": "@item().host_name",
+													"type": "Expression"
+												},
+												"port": {
+													"value": "@item().port",
+													"type": "Expression"
+												},
+												"user_name": {
+													"value": "@item().user_name",
+													"type": "Expression"
+												},
+												"secret_name": {
+													"value": "@item().secret_name",
+													"type": "Expression"
+												},
+												"source_file_path": {
+													"value": "@item().source_file_path",
+													"type": "Expression"
+												},
+												"file_name": {
+													"value": "@item().source_file_or_table_name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_output_csv",
+											"type": "DatasetReference",
+											"parameters": {
+												"container_name": {
+													"value": "@item().container_name",
+													"type": "Expression"
+												},
+												"adls_file_path": {
+													"value": "@item().adls_file_path",
+													"type": "Expression"
+												},
+												"file_name": {
+													"value": "@item().source_file_or_table_name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "copy success log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "copy source file",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('copied ',item().source_file_or_table_name,' file to adls landing container.')",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "copy failure log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "copy source file",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('failed to copy ',item().source_file_or_table_name,' file to adls landing container.')",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@concat('Error: ',activity('copy source file').Error.message)",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "trigger 2b_pl_sftp_landing_to_bronze",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "copy source file",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "2b_pl_sftp_landing_to_bronze",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"metadata_values": {
+												"value": "@item()",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "archive source files",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "trigger 2b_pl_sftp_landing_to_bronze",
+											"dependencyConditions": [
+												"Completed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/set_up/archive/archive_source_files",
+										"baseParameters": {
+											"LoadID": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"file_path": {
+												"value": "@item().adls_file_path",
+												"type": "Expression"
+											},
+											"source_file_name": {
+												"value": "@item().source_file_or_table_name",
+												"type": "Expression"
+											},
+											"storage_account_name": {
+												"value": "@item().storage_account",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "archive success log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "archive source files",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('Archived source file ',item().source_file_or_table_name)",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "archive failure log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [
+										{
+											"activity": "archive source files",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('failed to archive source file ',item().source_file_or_table_name)",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "@concat('Error: ',activity('archive source files').Error.message)",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "trigger 3_pl_bronze_to_silver",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "trigger 2b_pl_sftp_landing_to_bronze",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "3_pl_bronze_to_silver",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"metadata_values": {
+												"value": "@item()",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "trigger 4_pl_silver_to_gold",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "for each source file",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "4_pl_silver_to_gold",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"metadata_values": {
+									"value": "@activity('metadata_lookup').output.value[0]",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "pipeline ended log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "trigger 4_pl_silver_to_gold",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "Pipeline ended",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "success",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "pipeline ended failure log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "trigger 4_pl_silver_to_gold",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "Pipeline ended",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "failure",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "pipeline ended failure log for each source file",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "for each source file",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "Pipeline ended",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "failure",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"job_id": {
+						"type": "string",
+						"defaultValue": "101"
+					},
+					"metadata_database": {
+						"type": "string",
+						"defaultValue": "metadata_schema"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_metadata_adb_deltalake')]",
+				"[concat(variables('factoryId'), '/datasets/ds_input_sftp')]",
+				"[concat(variables('factoryId'), '/pipelines/4_pl_silver_to_gold')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_adb_compute')]",
+				"[concat(variables('factoryId'), '/datasets/ds_output_csv')]",
+				"[concat(variables('factoryId'), '/pipelines/2b_pl_sftp_landing_to_bronze')]",
+				"[concat(variables('factoryId'), '/pipelines/3_pl_bronze_to_silver')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/2a_pl_mysql_landing_to_bronze')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "bronze layer ingestion",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/mysql_bronze_ingestion",
+							"baseParameters": {
+								"LoadID": {
+									"value": "@pipeline()?.TriggeredByPipelineRunId",
+									"type": "Expression"
+								},
+								"bronze_schema": {
+									"value": "@pipeline().parameters.metadata_values.bronze_schema",
+									"type": "Expression"
+								},
+								"bronze_table": {
+									"value": "@pipeline().parameters.metadata_values.bronze_tbl",
+									"type": "Expression"
+								},
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"source_file_name": {
+									"value": "@pipeline().parameters.metadata_values.source_file_or_table_name",
+									"type": "Expression"
+								},
+								"storage_account_name": {
+									"value": "@pipeline().parameters.metadata_values.storage_account",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "compare records count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "bronze layer ingestion",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('bronze layer ingestion').output.runOutput[0], activity('bronze layer ingestion').output.runOutput[1])",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "records mismatch log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('Records mismatch between source file ',pipeline().parameters.metadata_values.source_file_or_table_name, ' records and ingested records in bronze layer table ',pipeline().parameters.metadata_values.bronze_tbl)",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "bronze layer ingestion success log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('Inserted ',activity('bronze layer ingestion').output.runOutput[1], ' records in bronze layer table ',pipeline().parameters.metadata_values.bronze_tbl)",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "bronze layer ingestion failure log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "bronze layer ingestion",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "@concat('Failed to ingest source file ',pipeline().parameters.metadata_values.source_file_or_table_name, ' to bronze layer table ', pipeline().parameters.metadata_values.bronze_tbl)",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@concat('Error: ', activity('bronze layer ingestion').Error.message)",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "bronze_layer_ingestion_failure_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "bronze layer ingestion",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@pipeline().parameters.metadata_values.logic_app_url",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "{\n    \"to\":\"@{pipeline().parameters.metadata_values.email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Bronze Layer Ingestion Failed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline()?.TriggeredByPipelineName}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.metadata_values.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>Failed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline()?.TriggeredByPipelineRunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{pipeline().parameters.pipeline_start_time}</td>\n        </tr>\n         <tr>\n            <td>Bronzetable</td>\n            <td>@{pipeline().parameters.metadata_values.bronze_tbl}</td>\n        </tr>\n        <tr>\n            <td>Error</td>\n            <td>@{activity('bronze layer ingestion').Error.message\n}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"metadata_values": {
+						"type": "object"
+					},
+					"pipeline_start_time": {
+						"type": "string"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adb_compute')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/2b_pl_sftp_landing_to_bronze')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "bronze layer ingestion",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/sftp_bronze_ingestion",
+							"baseParameters": {
+								"LoadID": {
+									"value": "@pipeline()?.TriggeredByPipelineRunId",
+									"type": "Expression"
+								},
+								"bronze_schema": {
+									"value": "@pipeline().parameters.metadata_values.bronze_schema",
+									"type": "Expression"
+								},
+								"bronze_table": {
+									"value": "@pipeline().parameters.metadata_values.bronze_tbl",
+									"type": "Expression"
+								},
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"source_file_name": {
+									"value": "@pipeline().parameters.metadata_values.source_file_or_table_name",
+									"type": "Expression"
+								},
+								"storage_account_name": {
+									"value": "@pipeline().parameters.metadata_values.storage_account",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "compare records count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "bronze layer ingestion",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('bronze layer ingestion').output.runOutput[0], activity('bronze layer ingestion').output.runOutput[1])",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "records mismatch log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('Records mismatch between source file ',pipeline().parameters.metadata_values.source_file_or_table_name, ' records and ingested records in bronze layer table ',pipeline().parameters.metadata_values.bronze_tbl)",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "bronze layer ingestion success log",
+									"type": "DatabricksNotebook",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+										"baseParameters": {
+											"env": {
+												"value": "@pipeline().globalParameters.env",
+												"type": "Expression"
+											},
+											"pipeLineName": {
+												"value": "@pipeline().Pipeline",
+												"type": "Expression"
+											},
+											"logMessage": {
+												"value": "@concat('Inserted ',activity('bronze layer ingestion').output.runOutput[1], ' records in bronze layer table ',pipeline().parameters.metadata_values.bronze_tbl)",
+												"type": "Expression"
+											},
+											"status": {
+												"value": "success",
+												"type": "Expression"
+											},
+											"triggerType": {
+												"value": "@pipeline().TriggerType",
+												"type": "Expression"
+											},
+											"loadId": {
+												"value": "@pipeline().RunId",
+												"type": "Expression"
+											},
+											"logTimeStamp": {
+												"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+												"type": "Expression"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "ls_adb_compute",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "bronze layer ingestion failure log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "bronze layer ingestion",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "@concat('Failed to ingest source file ',pipeline().parameters.metadata_values.source_file_or_table_name, ' to bronze layer table ', pipeline().parameters.metadata_values.bronze_tbl)",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@concat('Error: ', activity('bronze layer ingestion').Error.message)",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"metadata_values": {
+						"type": "object"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adb_compute')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/3_pl_bronze_to_silver')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "silver layer ingestion",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/bronze to silver ingestion",
+							"baseParameters": {
+								"LoadID": {
+									"value": "@pipeline()?.TriggeredByPipelineRunId",
+									"type": "Expression"
+								},
+								"bronze_schema": {
+									"value": "@pipeline().parameters.metadata_values.bronze_schema",
+									"type": "Expression"
+								},
+								"bronze_table": {
+									"value": "@pipeline().parameters.metadata_values.bronze_tbl",
+									"type": "Expression"
+								},
+								"silver_schema": {
+									"value": "@pipeline().parameters.metadata_values.silver_schema",
+									"type": "Expression"
+								},
+								"silver_table": {
+									"value": "@pipeline().parameters.metadata_values.silver_tbl",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "silver layer ingestion failure log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "silver layer ingestion",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "@concat('Failed to load records from ',pipeline().parameters.metadata_values.bronze_tbl, ' to silver layer table ', pipeline().parameters.metadata_values.silver_tbl)",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@concat('Error: ', activity('silver layer ingestion').Error.message)",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "silver layer ingestion success log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "silver layer ingestion",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "@concat(' inserted ',activity('silver layer ingestion').output.runOutput[1], ' records (',activity('silver layer ingestion').output.runOutput[0],' duplicate records removed) in silver layer table ',pipeline().parameters.metadata_values.silver_tbl)",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "success",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"metadata_values": {
+						"type": "object"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adb_compute')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/4_pl_silver_to_gold')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "gold layer ingestion",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 2,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/silver to gold ingestion",
+							"baseParameters": {
+								"LoadID": {
+									"value": "@pipeline()?.TriggeredByPipelineRunId",
+									"type": "Expression"
+								},
+								"silver_schema": {
+									"value": "@pipeline().parameters.metadata_values.silver_schema",
+									"type": "Expression"
+								},
+								"silver_table": {
+									"value": "@pipeline().parameters.metadata_values.silver_tbl",
+									"type": "Expression"
+								},
+								"gold_schema": {
+									"value": "@pipeline().parameters.metadata_values.gold_schema",
+									"type": "Expression"
+								},
+								"gold_table": {
+									"value": "@pipeline().parameters.metadata_values.gold_tbl",
+									"type": "Expression"
+								},
+								"source": {
+									"value": "@pipeline().parameters.metadata_values.source_ref_id",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "gold layer ingestion failure log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "gold layer ingestion",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "@concat('Failed to load records from ',pipeline().parameters.metadata_values.silver_tbl, ' to gold layer table ', pipeline().parameters.metadata_values.gold_tbl)",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "@concat('Error: ', activity('gold layer ingestion').Error.message)",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "gold layer ingestion success log",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "gold layer ingestion",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/databricks_notebooks/log_record_tbl_insert",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().globalParameters.env",
+									"type": "Expression"
+								},
+								"pipeLineName": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"logMessage": {
+									"value": "@concat(' inserted ',activity('gold layer ingestion').output.runOutput, ' records in gold layer table ',pipeline().parameters.metadata_values.gold_tbl)",
+									"type": "Expression"
+								},
+								"status": {
+									"value": "success",
+									"type": "Expression"
+								},
+								"triggerType": {
+									"value": "@pipeline().TriggerType",
+									"type": "Expression"
+								},
+								"loadId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								},
+								"logTimeStamp": {
+									"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_adb_compute",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"metadata_values": {
+						"type": "object"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adb_compute')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/temp_pl_email_testing')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "email testing",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": "https://prod-37.eastus2.logic.azure.com:443/workflows/7a5a667d5aa84b25b25ff4eb5472bfba/triggers/When_a_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=4NWUtjjUPgdUpuQ7d_z9SzUsnNLuD2rd80zxUAABhUI",
+							"body": {
+								"value": "{\n    \"to\":\"aziq@malaysianaids.org\",\n    \"subject\":\" test_subject\",\n    \"email_body\":\"dummy email alert\"\n}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_input_mysql')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_mysql",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"server_name": {
+							"value": "@dataset().server",
+							"type": "Expression"
+						},
+						"port": {
+							"value": "@dataset().port",
+							"type": "Expression"
+						},
+						"database_name": {
+							"value": "@dataset().database_name",
+							"type": "Expression"
+						},
+						"user_name": {
+							"value": "@dataset().user_name",
+							"type": "Expression"
+						},
+						"secret_name": {
+							"value": "@dataset().secret_name",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"server": {
+						"type": "string",
+						"defaultValue": "localhost"
+					},
+					"port": {
+						"type": "string",
+						"defaultValue": "3306"
+					},
+					"database_name": {
+						"type": "string",
+						"defaultValue": "fmcg"
+					},
+					"user_name": {
+						"type": "string",
+						"defaultValue": "root"
+					},
+					"secret_name": {
+						"type": "string",
+						"defaultValue": "mysql-password"
+					}
+				},
+				"annotations": [],
+				"type": "MySqlTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_mysql')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_input_sftp')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sftp",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"host_name": {
+							"value": "@dataset().host_name",
+							"type": "Expression"
+						},
+						"port": {
+							"value": "@dataset().port",
+							"type": "Expression"
+						},
+						"user_name": {
+							"value": "@dataset().user_name",
+							"type": "Expression"
+						},
+						"secret_name": {
+							"value": "@dataset().secret_name",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"host_name": {
+						"type": "string",
+						"defaultValue": "192.168.68.112"
+					},
+					"port": {
+						"type": "string",
+						"defaultValue": "22"
+					},
+					"user_name": {
+						"type": "string",
+						"defaultValue": "user"
+					},
+					"secret_name": {
+						"type": "string",
+						"defaultValue": "sftp-password"
+					},
+					"source_file_path": {
+						"type": "string",
+						"defaultValue": "/C:/sftp_files"
+					},
+					"file_name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "SftpLocation",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().source_file_path",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sftp')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_metadata_adb_deltalake')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adb_deltalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureDatabricksDeltaLakeDataset",
+				"typeProperties": {},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adb_deltalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_output_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"container_name": {
+						"type": "string"
+					},
+					"adls_file_path": {
+						"type": "string"
+					},
+					"file_name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().adls_file_path",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().container_name",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_output_parquet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"container_name": {
+						"type": "string"
+					},
+					"adls_file_path": {
+						"type": "string"
+					},
+					"table_name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().table_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().adls_file_path",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().container_name",
+							"type": "Expression"
+						}
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_adb_compute')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-2524827665836585.5.azuredatabricks.net",
+					"authentication": "MSI",
+					"workspaceResourceId": "/subscriptions/1f0f76f7-2371-46ba-9caf-e0eb0c92809d/resourceGroups/ah-dev-environment-eastus2/providers/Microsoft.Databricks/workspaces/ah-azuredatabricks-eastus2",
+					"existingClusterId": "[parameters('ls_adb_compute_properties_typeProperties_existingClusterId')]"
+				},
+				"connectVia": {
+					"referenceName": "ir-fmcg",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/ir-fmcg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_adb_deltalake')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricksDeltaLake",
+				"typeProperties": {
+					"domain": "https://adb-2524827665836585.5.azuredatabricks.net",
+					"clusterId": "0701-020414-af1rhccw",
+					"workspaceResourceId": "/subscriptions/1f0f76f7-2371-46ba-9caf-e0eb0c92809d/resourceGroups/ah-dev-environment-eastus2/providers/Microsoft.Databricks/workspaces/ah-azuredatabricks-eastus2"
+				},
+				"connectVia": {
+					"referenceName": "ir-fmcg",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/ir-fmcg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_adls')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_adls_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "ir-fmcg",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/ir-fmcg')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_keyvault')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('ls_keyvault_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_mysql')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"server_name": {
+						"type": "string",
+						"defaultValue": "localhost"
+					},
+					"port": {
+						"type": "string",
+						"defaultValue": "3306"
+					},
+					"database_name": {
+						"type": "string",
+						"defaultValue": "fmcg"
+					},
+					"user_name": {
+						"type": "string",
+						"defaultValue": "root"
+					},
+					"secret_name": {
+						"type": "string",
+						"defaultValue": "mysql-password"
+					}
+				},
+				"annotations": [],
+				"type": "MySql",
+				"typeProperties": {
+					"server": "[parameters('ls_mysql_properties_typeProperties_server')]",
+					"port": "@{linkedService().port}",
+					"database": "[parameters('ls_mysql_properties_typeProperties_database')]",
+					"username": "[parameters('ls_mysql_properties_typeProperties_username')]",
+					"sslMode": 0,
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "ls_keyvault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "mysql-password"
+					},
+					"driverVersion": "v2"
+				},
+				"connectVia": {
+					"referenceName": "ir-fmcg",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/ir-fmcg')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_keyvault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sftp')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"host_name": {
+						"type": "string",
+						"defaultValue": "192.168.68.112"
+					},
+					"port": {
+						"type": "string",
+						"defaultValue": "22"
+					},
+					"user_name": {
+						"type": "string",
+						"defaultValue": "user"
+					},
+					"secret_name": {
+						"type": "string",
+						"defaultValue": "sftp-password"
+					}
+				},
+				"annotations": [],
+				"type": "Sftp",
+				"typeProperties": {
+					"host": "[parameters('ls_sftp_properties_typeProperties_host')]",
+					"port": 22,
+					"skipHostKeyValidation": true,
+					"authenticationType": "Basic",
+					"userName": "[parameters('ls_sftp_properties_typeProperties_userName')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "ls_keyvault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "sftp-password"
+					}
+				},
+				"connectVia": {
+					"referenceName": "ir-fmcg",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/ir-fmcg')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_keyvault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/mysql_trigger')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "1a_pl_source_mysql_ingestion",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"job_id": "[parameters('mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_job_id')]",
+							"metadata_database": "[parameters('mysql_trigger_properties_1a_pl_source_mysql_ingestion_parameters_metadata_database')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2024-07-21T12:16:00",
+						"endTime": "2024-07-22T07:00:00",
+						"timeZone": "Singapore Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								6
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/1a_pl_source_mysql_ingestion')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ir-fmcg')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		}
+	]
+}
