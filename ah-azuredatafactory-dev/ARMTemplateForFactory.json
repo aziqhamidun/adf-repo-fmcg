@@ -1727,6 +1727,70 @@
 											}
 										}
 									}
+								},
+								{
+									"name": "copy_failed_email_alert",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "copy source file",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "POST",
+										"headers": {},
+										"url": {
+											"value": "@item().logic_app_url",
+											"type": "Expression"
+										},
+										"body": {
+											"value": "{\n    \"to\":\"@{item().email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Source File Copy Failed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>Failed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n         <tr>\n            <td>FileName</td>\n            <td>@{item().source_file_or_table_name}</td>\n        </tr>\n        <tr>\n            <td>Error</td>\n            <td>@{activity('copy source file').Error.message\n}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "archive_failed_email_alert",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "archive source files",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "POST",
+										"headers": {},
+										"url": {
+											"value": "@item().logic_app_url",
+											"type": "Expression"
+										},
+										"body": {
+											"value": "{\n    \"to\":\"@{item().email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Source File Archive Failed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>Failed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n         <tr>\n            <td>FileName</td>\n            <td>@{item().source_file_or_table_name}</td>\n        </tr>\n        <tr>\n            <td>Error</td>\n            <td>@{activity('archive source files').Error.message\n}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+											"type": "Expression"
+										}
+									}
 								}
 							]
 						}
@@ -1930,6 +1994,126 @@
 							"referenceName": "ls_adb_compute",
 							"type": "LinkedServiceReference"
 						}
+					},
+					{
+						"name": "pipeline_start_time",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "metadata_lookup",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "start_time",
+							"value": {
+								"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "pipeline_inprogress_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "metadata_lookup",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@activity('metadata_lookup').output.value[0].logic_app_url",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "{\n    \"to\":\"@{activity('metadata_lookup').output.value[0].email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [InProgress]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>In Progress</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "pipeline_success_email_alert",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "trigger 4_pl_silver_to_gold",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@activity('metadata_lookup').output.value[0].logic_app_url",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "{\n    \"to\":\"@{activity('metadata_lookup').output.value[0].email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Completed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Green';>Completed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n         <tr>\n            <td>JobEnd</td>\n            <td>@{formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'), 'yyyy-MM-dd HH:mm:ss')\n}</td>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "pipeline_failure_email_alert",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "trigger 4_pl_silver_to_gold",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@activity('metadata_lookup').output.value[0].logic_app_url",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "{\n    \"to\":\"@{activity('metadata_lookup').output.value[0].email_id}\",\n    \"subject\":\" @{concat('[',pipeline().globalParameters.env,'] ',pipeline().Pipeline,' : [Failed]')}\",\n    \"email_body\":\"\n   \n    <!DOCTYPE html>\n<html>\n<body>\n    Dear All,<br/>\\n\n\n    Please find below the status for @{pipeline().Pipeline}:<br/>\n    \n    <table>\n        <tr>\n            <th style='text-align: left;'>Parameters</th>\n            <th style='text-align: left;'>Value</th>\n        </tr>\n        <tr>\n            <td>JobID</td>\n            <td>@{pipeline().parameters.job_id}</td>\n        </tr>\n        <tr>\n            <td>Status</td>\n            <td><span style='color:Red';>Failed</span></td>\n        </tr>\n        <tr>\n            <td>Scheduled</td>\n            <td>@{pipeline().TriggerType}</td>\n        </tr>\n        <tr>\n            <td>LoadID</td>\n            <td>@{pipeline().RunId}</td>\n        </tr>\n        <tr>\n            <td>JobStart</td>\n            <td>@{variables('start_time')}</td>\n        </tr>\n        <tr>\n            <td>JobEnd</td>\n            <td>@{formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_lumpur'), 'yyyy-MM-dd HH:mm:ss')\n}</td>\n        </tr>\n    </table><br/>    \n    <p>Aziq Hamidun</p>\n</body>\n</html>\n    \"\n}",
+								"type": "Expression"
+							}
+						}
 					}
 				],
 				"policy": {
@@ -1943,6 +2127,14 @@
 					"metadata_database": {
 						"type": "string",
 						"defaultValue": "metadata_schema"
+					}
+				},
+				"variables": {
+					"set_time": {
+						"type": "String"
+					},
+					"start_time": {
+						"type": "String"
 					}
 				},
 				"annotations": []
