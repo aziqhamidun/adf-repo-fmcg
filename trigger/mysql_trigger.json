@@ -1,0 +1,37 @@
+{
+	"name": "mysql_trigger",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "1a_pl_source_mysql_ingestion",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"job_id": "102",
+					"metadata_database": "metadata_schema"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2024-07-21T12:16:00",
+				"endTime": "2024-07-25T07:00:00",
+				"timeZone": "Singapore Standard Time",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						6
+					]
+				}
+			}
+		}
+	}
+}

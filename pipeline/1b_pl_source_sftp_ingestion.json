@@ -975,9 +975,6 @@
 			}
 		},
 		"variables": {
-			"set_time": {
-				"type": "String"
-			},
 			"start_time": {
 				"type": "String"
 			}
