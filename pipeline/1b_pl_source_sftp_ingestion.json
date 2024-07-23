@@ -956,7 +956,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"variableName": "set_time",
+					"variableName": "start_time",
 					"value": {
 						"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
 						"type": "Expression"
@@ -976,6 +976,9 @@
 		},
 		"variables": {
 			"set_time": {
+				"type": "String"
+			},
+			"start_time": {
 				"type": "String"
 			}
 		},
