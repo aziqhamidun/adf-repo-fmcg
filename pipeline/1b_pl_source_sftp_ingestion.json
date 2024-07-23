@@ -938,30 +938,6 @@
 					"referenceName": "ls_adb_compute",
 					"type": "LinkedServiceReference"
 				}
-			},
-			{
-				"name": "pipeline_start_time",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "metadata_lookup",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "start_time",
-					"value": {
-						"value": "@formatDateTime(convertFromUtc(utcNow(), 'Asia/Kuala_Lumpur'),'yyyy-MM-dd HH:mm:ss')",
-						"type": "Expression"
-					}
-				}
 			}
 		],
 		"parameters": {
