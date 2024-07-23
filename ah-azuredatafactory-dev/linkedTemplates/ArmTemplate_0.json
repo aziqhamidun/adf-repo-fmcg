@@ -3340,7 +3340,7 @@
 						"frequency": "Day",
 						"interval": 1,
 						"startTime": "2024-07-21T12:16:00",
-						"endTime": "2024-07-22T07:00:00",
+						"endTime": "2024-07-25T07:00:00",
 						"timeZone": "Singapore Standard Time",
 						"schedule": {
 							"minutes": [
