@@ -38,6 +38,12 @@
 						"dependencyConditions": [
 							"Succeeded"
 						]
+					},
+					{
+						"activity": "pipeline_start_time",
+						"dependencyConditions": [
+							"Succeeded"
+						]
 					}
 				],
 				"policy": {
@@ -1004,14 +1010,7 @@
 			{
 				"name": "pipeline_start_time",
 				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "metadata_lookup",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"secureOutput": false,
 					"secureInput": false
